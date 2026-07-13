@@ -42,7 +42,72 @@
     </noscript>
   </head>
   <body>
-    <div id="root"></div>
+    <!-- Painted from HTML + inline CSS, before a single byte of JS runs.
+         This is a SPA with no SSR, so nothing at all appeared until React had
+         downloaded, parsed and mounted — that was the blank screen. The couch is
+         pure CSS, so we can just draw it here and let React take over the moment
+         it's ready. FCP stops being a JavaScript problem. -->
+    <style>
+      :root {
+        --sk-room: #faf6f1;
+        --sk-cushion: #fdfbf8;
+        --sk-calm: #c9bde4;
+        --sk-calm-lit: #dbd2ee;
+        --sk-calm-dim: #b0a0d4;
+        --sk-calm-base: #8f7bc0;
+        --sk-ink: #4b4238;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --sk-room: #242030;
+          --sk-cushion: #302b3e;
+          --sk-calm: #8f7bb8;
+          --sk-calm-lit: #a08fc7;
+          --sk-calm-dim: #6f5d9b;
+          --sk-calm-base: #574780;
+          --sk-ink: #efeae4;
+        }
+      }
+      html { background: var(--sk-room); }
+      .boot {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 34px 20px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      }
+      .boot-logo {
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 24px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        color: var(--sk-ink);
+        margin-bottom: 46px;
+      }
+      .boot-couch {
+        height: 268px;
+        border-radius: 44px;
+        background: linear-gradient(168deg, var(--sk-calm-lit), var(--sk-calm) 58%, var(--sk-calm-dim));
+        box-shadow:
+          inset 0 3px 0 rgba(255, 255, 255, 0.6),
+          0 10px 0 -2px var(--sk-calm-base),
+          0 26px 50px -14px rgba(143, 123, 192, 0.5);
+        animation: boot-breathe 2.4s ease-in-out infinite;
+      }
+      @keyframes boot-breathe {
+        0%, 100% { opacity: 0.82; }
+        50%      { opacity: 1; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .boot-couch { animation: none; }
+      }
+    </style>
+
+    <div id="root">
+      <div class="boot" aria-hidden="true">
+        <div class="boot-logo">feeling</div>
+        <div class="boot-couch"></div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
