@@ -2,12 +2,11 @@ import { useState } from "react";
 import { STYLE_OPTIONS, type Persona, type StyleId } from "../lib/persona";
 
 /**
- * First run. Two jobs: explain what this is honestly, and let the user build the
- * friend they'd actually talk to.
+ * First run.
  *
- * We tell them up front that there are no streaks and that the journal stays on
- * the device — because both of those are the reasons to trust it, and burying
- * them in a settings page would waste them.
+ * The three tenets are stated up front, numbered, because they ARE the product:
+ * precision over comfort, honesty over engagement, privacy by construction. An
+ * app that buries its position in a settings page doesn't really hold it.
  */
 export function Onboarding({ onDone }: { onDone: (p: Persona) => void }) {
   const [name, setName] = useState("");
@@ -15,42 +14,51 @@ export function Onboarding({ onDone }: { onDone: (p: Persona) => void }) {
   const [custom, setCustom] = useState("");
   const [step, setStep] = useState<0 | 1>(0);
 
-  const finalName = name.trim() || "Temen";
-
   return (
     <div className="onboard">
       {step === 0 && (
         <div className="ob-panel">
-          <h1>feeling</h1>
+          <h1 className="ob-mark">
+            feeling<em>.</em>
+          </h1>
           <p className="ob-lead">
-            Jurnal buat ngenalin apa yang kamu rasain — bukan cuma "lagi baik" atau "lagi
-            nggak".
+            Alat untuk melokalisir apa yang kamu rasakan — bukan sekadar “lagi baik” atau “lagi
+            tidak”.
           </p>
 
-          <div className="ob-points">
-            <div>
-              <b>Nama rasanya dulu, baru dirasain.</b>
+          <div className="tenets">
+            <div className="tenet">
+              <span className="no">01</span>
               <span>
-                Bisa bedain <i>kesal</i> dari <i>kecewa</i> itu bukan main kata. Orang yang bisa
-                namain lebih presisi terbukti lebih tenang ngadepinnya.
+                <b>Namai dengan tepat.</b>
+                <span>
+                  Bisa membedakan <i>kesal</i> dari <i>kecewa</i> itu bukan main-main kata. Orang
+                  yang menamai lebih presisi terbukti lebih tenang menghadapinya.
+                </span>
               </span>
             </div>
-            <div>
-              <b>Nggak ada streak.</b>
+            <div className="tenet">
+              <span className="no">02</span>
               <span>
-                Sengaja. Begitu kamu ngejar angka, kamu mulai ngisi "aman aja" di hari yang
-                nggak aman — dan datanya jadi bohong.
+                <b>Tidak ada streak.</b>
+                <span>
+                  Sengaja. Begitu kamu mengejar angka, kamu mulai menulis “aman saja” di hari yang
+                  tidak aman — dan datanya jadi bohong.
+                </span>
               </span>
             </div>
-            <div>
-              <b>Datanya cuma di HP kamu.</b>
+            <div className="tenet">
+              <span className="no">03</span>
               <span>
-                Nggak ada server, nggak ada akun. Nggak ada yang bisa baca — termasuk aku.
+                <b>Datanya tinggal di sini.</b>
+                <span>
+                  Tidak ada server, tidak ada akun. Tidak ada yang bisa membacanya — termasuk aku.
+                </span>
               </span>
             </div>
           </div>
 
-          <button className="btn primary" onClick={() => setStep(1)}>
+          <button className="btn" onClick={() => setStep(1)}>
             Lanjut
           </button>
         </div>
@@ -58,27 +66,31 @@ export function Onboarding({ onDone }: { onDone: (p: Persona) => void }) {
 
       {step === 1 && (
         <div className="ob-panel">
-          <h2>Bikin temen curhatmu</h2>
+          <h2>Siapa yang mendengarkan?</h2>
           <p className="ob-lead sm">
-            Nanti kamu bisa cerita ke dia soal apa yang kamu catat. Dia AI — bukan psikolog, dan
-            nggak akan pura-pura jadi psikolog.
+            Nanti kamu bisa menceritakan catatanmu ke dia. Dia AI — bukan psikolog, dan tidak akan
+            berpura-pura jadi psikolog.
           </p>
 
-          <label className="ob-label">Panggil dia apa?</label>
+          <label className="field-l" htmlFor="ob-name">
+            Panggil dia apa
+          </label>
           <input
-            className="ob-input"
+            id="ob-name"
+            className="field"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Temen"
             maxLength={40}
           />
 
-          <label className="ob-label">Gayanya gimana?</label>
-          <div className="ob-styles">
+          <label className="field-l">Cara dia menanggapi</label>
+          <div className="voices">
             {STYLE_OPTIONS.map((s) => (
               <button
                 key={s.id}
-                className={`ob-style ${style === s.id ? "on" : ""}`}
+                className={`voice ${style === s.id ? "on" : ""}`}
+                aria-pressed={style === s.id}
                 onClick={() => setStyle(s.id)}
               >
                 <b>{s.label}</b>
@@ -87,34 +99,39 @@ export function Onboarding({ onDone }: { onDone: (p: Persona) => void }) {
               </button>
             ))}
             <button
-              className={`ob-style ${style === "custom" ? "on" : ""}`}
+              className={`voice ${style === "custom" ? "on" : ""}`}
+              aria-pressed={style === "custom"}
               onClick={() => setStyle("custom")}
             >
               <b>Tulis sendiri</b>
-              <span className="blurb">Deskripsiin sendiri karakternya.</span>
+              <span className="blurb">Kamu yang menentukan karakternya.</span>
             </button>
           </div>
 
           {style === "custom" && (
             <textarea
-              className="ob-input"
+              className="field"
+              style={{ marginTop: "var(--space-md)" }}
               rows={3}
               value={custom}
               onChange={(e) => setCustom(e.target.value)}
-              placeholder="Contoh: sabar, nggak banyak omong, suka ngasih analogi, kadang nyeletuk lucu…"
+              placeholder="Sabar, tidak banyak bicara, suka memberi analogi, sesekali menyeletuk…"
               maxLength={500}
+              aria-label="Karakter kustom"
             />
           )}
 
           <button
-            className="btn primary"
-            onClick={() => onDone({ name: finalName, style, custom: custom.trim() })}
+            className="btn"
+            onClick={() =>
+              onDone({ name: name.trim() || "Temen", style, custom: custom.trim() })
+            }
           >
             Mulai
           </button>
           <p className="ob-fine">
-            Bisa diubah kapan aja nanti. Kalau kamu nggak mau pakai AI sama sekali, tinggal nggak
-            usah dibuka — sisa aplikasinya jalan penuh tanpa itu.
+            Bisa diubah kapan saja. Kalau kamu tidak ingin memakai AI sama sekali, cukup jangan
+            dibuka — sisa aplikasinya jalan penuh tanpa itu.
           </p>
         </div>
       )}

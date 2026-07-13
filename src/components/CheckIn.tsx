@@ -9,20 +9,21 @@ import {
 } from "../lib/emotions";
 
 /**
- * The check-in.
+ * The check-in — a plot, not a picker.
  *
- * Designed around one constraint above all others: THIS MUST TAKE UNDER 20
- * SECONDS. Every mood tracker dies the same death — it becomes homework, the
- * user starts tapping whatever is fastest, and the data turns into fiction.
- * So: 4 steps, each one tap, and the last two are skippable.
+ * Design position: this app is an INSTRUMENT, not a wellness product. The user
+ * locates themselves on a coordinate plane; the interface reads out where they
+ * are, in numbers, the way any honest instrument does. Nothing here soothes,
+ * because soothing an angry person is a way of not listening to them.
  *
- * The order matters and is not arbitrary. You place yourself on the grid BEFORE
- * seeing any words, because being handed a vocabulary first anchors you to it —
- * you pick the word you recognise rather than the one that's true. Body first,
+ * The step order is load-bearing and must not be reversed: you place yourself
+ * on the plane BEFORE any vocabulary appears. Handed a word list first, people
+ * pick the word they recognise instead of the word that's true. Body first,
  * language second.
  */
 
-type Step = "grid" | "word" | "intensity" | "why";
+type Step = "plot" | "word" | "dial" | "why";
+const STEPS: Step[] = ["plot", "word", "dial", "why"];
 
 export interface Draft {
   x: number;
@@ -34,6 +35,10 @@ export interface Draft {
   note: string;
 }
 
+/** Per-quadrant ink, as a CSS custom property — never an inline colour value. */
+const inkVar = (q: QuadrantId) => `var(--q-${q}-ink)`;
+const markVar = (q: QuadrantId) => `var(--q-${q})`;
+
 export function CheckIn({
   onSave,
   onCancel,
@@ -41,119 +46,167 @@ export function CheckIn({
   onSave: (d: Draft) => void;
   onCancel: () => void;
 }) {
-  const [step, setStep] = useState<Step>("grid");
+  const [step, setStep] = useState<Step>("plot");
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+  const [hover, setHover] = useState<{ x: number; y: number } | null>(null);
   const [word, setWord] = useState<Emotion | null>(null);
   const [intensity, setIntensity] = useState(5);
   const [contexts, setContexts] = useState<string[]>([]);
   const [note, setNote] = useState("");
-  const gridRef = useRef<HTMLDivElement>(null);
+  const plotRef = useRef<HTMLDivElement>(null);
 
   const quadrant: QuadrantId | null = pos ? quadrantAt(pos.x, pos.y) : null;
+  const live = hover ?? pos;
 
-  const pickPoint = (e: React.PointerEvent) => {
-    const el = gridRef.current;
-    if (!el) return;
+  const toWorld = (e: React.PointerEvent) => {
+    const el = plotRef.current;
+    if (!el) return null;
     const r = el.getBoundingClientRect();
-    // x: left→right = unpleasant→pleasant. y: SCREEN top→bottom is high→low
-    // energy, so it flips sign.
-    const x = ((e.clientX - r.left) / r.width) * 2 - 1;
-    const y = -(((e.clientY - r.top) / r.height) * 2 - 1);
-    setPos({ x: clamp(x), y: clamp(y) });
-    setStep("word");
+    // x: unpleasant → pleasant. y flips: screen-down is LOW energy.
+    const x = clamp(((e.clientX - r.left) / r.width) * 2 - 1);
+    const y = clamp(-(((e.clientY - r.top) / r.height) * 2 - 1));
+    return { x, y };
   };
+
+  const stepIdx = STEPS.indexOf(step);
 
   return (
     <div className="checkin">
       <div className="ci-head">
-        <button className="ci-back" onClick={step === "grid" ? onCancel : () => back(step, setStep)}>
-          ←
+        <button
+          className="ci-back"
+          onClick={step === "plot" ? onCancel : () => setStep(STEPS[Math.max(0, stepIdx - 1)])}
+        >
+          ← {step === "plot" ? "Batal" : "Kembali"}
         </button>
-        <div className="ci-steps">
-          {(["grid", "word", "intensity", "why"] as Step[]).map((s) => (
-            <span key={s} className={`ci-dot ${s === step ? "on" : ""}`} />
-          ))}
-        </div>
+        <span className="ci-steps">
+          <b>{String(stepIdx + 1).padStart(2, "0")}</b> / 04
+        </span>
       </div>
 
-      {/* ── 1. body first: where are you? ─────────────────────────────────── */}
-      {step === "grid" && (
+      {/* ── 01 · locate yourself ────────────────────────────────────────── */}
+      {step === "plot" && (
         <div className="ci-panel">
-          <h2>Lagi di mana rasamu?</h2>
+          <h2>Di mana kamu sekarang?</h2>
           <p className="ci-sub">
-            Belum usah cari kata. Rasain aja badanmu — lagi bertenaga atau lemes, enak atau
-            nggak enak.
+            Belum usah cari kata. Rasakan dulu badanmu — sedang bertenaga atau lemas, enak atau
+            tidak enak. Tandai titiknya.
           </p>
 
-          <div className="grid-wrap">
-            <span className="axis top">energi tinggi</span>
-            <span className="axis bottom">energi rendah</span>
-            <span className="axis left">nggak enak</span>
-            <span className="axis right">enak</span>
+          <div className="plot-wrap">
+            <span className="axis-label top">energi tinggi</span>
+            <span className="axis-label bottom">energi rendah</span>
+            <span className="axis-label left">tidak enak</span>
+            <span className="axis-label right">enak</span>
 
-            <div className="grid" ref={gridRef} onPointerDown={pickPoint}>
-              {(["red", "yellow", "blue", "green"] as QuadrantId[]).map((q) => (
-                <div key={q} className={`cell ${q}`} style={{ background: QUADRANTS[q].soft }}>
-                  <span style={{ color: QUADRANTS[q].ink }}>{QUADRANTS[q].label}</span>
-                </div>
-              ))}
+            <div
+              className="plot"
+              ref={plotRef}
+              onPointerDown={(e) => {
+                const p = toWorld(e);
+                if (!p) return;
+                setPos(p);
+                setStep("word");
+              }}
+              onPointerMove={(e) => setHover(toWorld(e))}
+              onPointerLeave={() => setHover(null)}
+            >
+              <div className="quad red">
+                <span>tegang</span>
+              </div>
+              <div className="quad yellow">
+                <span>hidup</span>
+              </div>
+              <div className="quad blue">
+                <span>redup</span>
+              </div>
+              <div className="quad green">
+                <span>tenang</span>
+              </div>
+
+              <div className="axis-line h" />
+              <div className="axis-line v" />
+
+              {/* the instrument tracking your hand */}
+              {hover && (
+                <>
+                  <div className="cross h" style={{ top: `${((1 - hover.y) / 2) * 100}%` }} />
+                  <div className="cross v" style={{ left: `${((hover.x + 1) / 2) * 100}%` }} />
+                </>
+              )}
+
               {pos && (
                 <span
-                  className="pin"
+                  className="mark-pt"
                   style={{
                     left: `${((pos.x + 1) / 2) * 100}%`,
                     top: `${((1 - pos.y) / 2) * 100}%`,
-                    background: QUADRANTS[quadrantAt(pos.x, pos.y)].color,
+                    background: markVar(quadrantAt(pos.x, pos.y)),
                   }}
                 />
               )}
+            </div>
+
+            {/* the readout. An instrument tells you what it measured. */}
+            <div className="readout">
+              <span>
+                rasa <b>{live ? fmt(live.x) : "—.——"}</b>
+              </span>
+              <span>
+                energi <b>{live ? fmt(live.y) : "—.——"}</b>
+              </span>
+              <span style={live ? { color: inkVar(quadrantAt(live.x, live.y)) } : undefined}>
+                {live ? QUADRANTS[quadrantAt(live.x, live.y)].label.toLowerCase() : "—"}
+              </span>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── 2. now the language ───────────────────────────────────────────── */}
+      {/* ── 02 · the lexicon ────────────────────────────────────────────── */}
       {step === "word" && quadrant && (
         <div className="ci-panel">
-          <h2>Yang mana yang paling pas?</h2>
+          <h2>Yang mana yang benar?</h2>
           <p className="ci-sub">
-            Kalau ragu di antara dua, baca keterangan kecilnya — bedanya biasanya di situ.
+            Bukan yang paling dekat — yang paling <i>benar</i>. Kalau ragu antara dua, keterangan
+            kecilnya yang membedakan.
           </p>
 
-          <div className="words">
+          <div className="lex">
             {EMOTIONS_BY_QUADRANT[quadrant].map((e) => (
               <button
                 key={e.word}
-                className={`wordbtn ${word?.word === e.word ? "on" : ""}`}
-                style={
-                  word?.word === e.word
-                    ? { borderColor: QUADRANTS[quadrant].color, background: QUADRANTS[quadrant].soft }
-                    : undefined
-                }
+                className="lex-row"
                 onClick={() => {
                   setWord(e);
-                  setStep("intensity");
+                  setStep("dial");
                 }}
               >
-                <span className="w">{e.word}</span>
-                <span className="n">{e.nuance}</span>
+                <span>
+                  <span className="lex-w" style={{ color: inkVar(quadrant) }}>
+                    {e.word}
+                  </span>
+                  <span className="lex-n">{e.nuance}</span>
+                </span>
+                <span className="lex-i">pilih →</span>
               </button>
             ))}
           </div>
         </div>
       )}
 
-      {/* ── 3. how strong ─────────────────────────────────────────────────── */}
-      {step === "intensity" && word && quadrant && (
+      {/* ── 03 · the dial ───────────────────────────────────────────────── */}
+      {step === "dial" && word && quadrant && (
         <div className="ci-panel">
           <h2>
-            Seberapa kuat rasa <b style={{ color: QUADRANTS[quadrant].ink }}>{word.word}</b>-nya?
+            Seberapa kuat <em style={{ color: inkVar(quadrant), fontStyle: "italic" }}>{word.word}</em>-nya?
           </h2>
           <p className="ci-sub">{word.nuance}.</p>
 
-          <div className="intensity">
-            <div className="int-val" style={{ color: QUADRANTS[quadrant].ink }}>
-              {intensity}
+          <div className="dial" style={{ ["--dial-ink" as string]: markVar(quadrant) }}>
+            <div className="dial-val" style={{ color: inkVar(quadrant) }}>
+              {String(intensity).padStart(2, "0")}
+              <small>/ 10</small>
             </div>
             <input
               type="range"
@@ -161,27 +214,27 @@ export function CheckIn({
               max={10}
               value={intensity}
               onChange={(e) => setIntensity(Number(e.target.value))}
-              style={{ accentColor: QUADRANTS[quadrant].color }}
+              aria-label={`Intensitas ${word.word}`}
             />
-            <div className="int-ends">
+            <div className="dial-ticks">
               <span>samar</span>
               <span>menguasai</span>
             </div>
           </div>
 
-          <button className="btn primary" onClick={() => setStep("why")}>
+          <button className="btn" onClick={() => setStep("why")}>
             Lanjut
           </button>
         </div>
       )}
 
-      {/* ── 4. the "why" — tags do the work, the note is optional ─────────── */}
+      {/* ── 04 · the context ────────────────────────────────────────────── */}
       {step === "why" && word && quadrant && (
         <div className="ci-panel">
-          <h2>Ada hubungannya sama apa?</h2>
+          <h2>Berkaitan dengan apa?</h2>
           <p className="ci-sub">
-            Boleh lebih dari satu, boleh juga dilewat. Tag inilah yang nanti bikin polanya
-            kelihatan.
+            Boleh lebih dari satu, boleh dilewat. Tag inilah yang nanti bikin polanya kelihatan —
+            catatan bebas tidak bisa dihitung.
           </p>
 
           <div className="tags">
@@ -191,14 +244,14 @@ export function CheckIn({
                 <button
                   key={c.id}
                   className={`tag ${on ? "on" : ""}`}
-                  style={on ? { borderColor: QUADRANTS[quadrant].color, background: QUADRANTS[quadrant].soft } : undefined}
+                  aria-pressed={on}
                   onClick={() =>
                     setContexts((cur) =>
                       cur.includes(c.id) ? cur.filter((x) => x !== c.id) : [...cur, c.id]
                     )
                   }
                 >
-                  <span>{c.emoji}</span> {c.label}
+                  {c.label}
                 </button>
               );
             })}
@@ -209,18 +262,16 @@ export function CheckIn({
             value={note}
             onChange={(e) => setNote(e.target.value)}
             rows={3}
-            placeholder="Mau nulis sesuatu? (boleh dikosongin)"
+            placeholder="Catatan (boleh kosong)"
+            aria-label="Catatan"
           />
-          {/* The one piece of coaching in the whole flow — and the one that
-              actually separates feeling from story. */}
           <p className="ci-tip">
-            Kalau nulis, coba pisahkan <b>apa yang kamu rasakan</b> dari <b>apa yang kamu
-            pikirkan</b>. "Aku merasa dikhianati" itu tafsiran; rasanya mungkin{" "}
-            <i>sakit hati</i> dan <i>marah</i>.
+            Kalau menulis, pisahkan <b>apa yang kamu rasakan</b> dari <b>apa yang kamu pikirkan</b>.
+            “Aku merasa dikhianati” itu tafsiran; rasanya mungkin <i>sakit hati</i> dan <i>marah</i>.
           </p>
 
           <button
-            className="btn primary"
+            className="btn"
             onClick={() =>
               pos &&
               onSave({
@@ -234,7 +285,7 @@ export function CheckIn({
               })
             }
           >
-            Simpan
+            Catat
           </button>
         </div>
       )}
@@ -244,8 +295,5 @@ export function CheckIn({
 
 const clamp = (n: number): number => Math.max(-1, Math.min(1, n));
 
-function back(step: Step, setStep: (s: Step) => void) {
-  const order: Step[] = ["grid", "word", "intensity", "why"];
-  const i = order.indexOf(step);
-  setStep(order[Math.max(0, i - 1)]);
-}
+/** Signed, fixed-width — a readout should not jitter as the value crosses zero. */
+const fmt = (n: number): string => (n >= 0 ? "+" : "−") + Math.abs(n).toFixed(2);

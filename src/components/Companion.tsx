@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { QUADRANTS } from "../lib/emotions";
+import { QUADRANTS, type QuadrantId } from "../lib/emotions";
 import type { Entry } from "../lib/store";
 import type { Persona } from "../lib/persona";
 
@@ -9,13 +9,15 @@ interface Msg {
   crisis?: boolean;
 }
 
+const inkVar = (q: QuadrantId) => `var(--q-${q}-ink)`;
+const markVar = (q: QuadrantId) => `var(--q-${q})`;
+
 /**
- * The vent-to-a-friend panel.
+ * PRIVACY — the one place data leaves the device.
  *
- * PRIVACY — the thing to keep straight in your head while reading this:
- * the journal is local-only, but THIS is the one place data leaves the device.
- * We send exactly one entry (the one the user opened this on) plus what they
- * type here. Never the history. The UI says so out loud the first time.
+ * The journal is local-only; this panel is the single exception, and it is
+ * opt-in with an explicit disclosure. We send exactly ONE entry — the one the
+ * user opened this on — plus what they type here. Never the history.
  */
 export function Companion({
   entry,
@@ -32,8 +34,6 @@ export function Companion({
   const [ack, setAck] = useState(() => localStorage.getItem("feeling:ai-ack") === "1");
   const endRef = useRef<HTMLDivElement>(null);
 
-  const q = QUADRANTS[entry.quadrant];
-
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [msgs, busy]);
@@ -49,7 +49,6 @@ export function Companion({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           persona,
-          // ONE entry — not the journal.
           entry: {
             word: entry.word,
             intensity: entry.intensity,
@@ -65,53 +64,49 @@ export function Companion({
     } catch (e) {
       setMsgs([
         ...next,
-        {
-          role: "assistant",
-          content: e instanceof Error ? `(${e.message})` : "(gagal menghubungi)",
-        },
+        { role: "assistant", content: e instanceof Error ? `(${e.message})` : "(gagal)" },
       ]);
     } finally {
       setBusy(false);
     }
   }
 
-  // ── The privacy gate. Shown once, and it does not soften the truth. ────────
   if (!ack) {
     return (
       <div className="companion">
         <div className="cmp-head">
-          <span>Sebelum mulai</span>
-          <button className="x" onClick={onClose}>
-            ✕
+          <span className="cmp-who">Sebelum mulai</span>
+          <button className="cmp-x" onClick={onClose}>
+            Tutup
           </button>
         </div>
         <div className="privacy">
-          <h3>Yang ini keluar dari HP-mu.</h3>
+          <h3>Yang ini keluar dari perangkatmu.</h3>
           <p>
-            Jurnalmu disimpan <b>cuma di perangkat ini</b> — nggak pernah dikirim ke mana-mana.
-            Tapi kalau kamu ngobrol sama {persona.name}, isi obrolan itu{" "}
-            <b>dikirim ke server AI (DeepSeek)</b> supaya bisa dijawab.
+            Jurnalmu disimpan <b>hanya di sini</b> — tidak pernah dikirim ke mana pun. Tapi kalau
+            kamu bicara dengan {persona.name}, isi percakapan itu <b>dikirim ke server AI</b> supaya
+            bisa dijawab.
           </p>
           <p>
-            Yang dikirim cuma <b>catatan yang lagi kamu buka ini</b> dan apa yang kamu ketik di
-            sini. Riwayat jurnalmu yang lain <b>nggak ikut</b>.
+            Yang dikirim hanya <b>catatan yang sedang kamu buka ini</b> dan apa yang kamu ketik.
+            Riwayat jurnalmu yang lain <b>tidak ikut</b>.
           </p>
           <p className="fine">
-            Kalau kamu nggak nyaman dengan itu, nggak apa-apa — tutup aja. Sisa aplikasinya tetap
-            jalan penuh tanpa ini.
+            Kalau kamu tidak nyaman, tidak apa-apa — tutup saja. Sisa aplikasinya tetap jalan penuh
+            tanpa ini.
           </p>
-          <div className="privacy-actions">
+          <div className="privacy-act">
             <button className="btn ghost" onClick={onClose}>
-              Nggak dulu
+              Tidak dulu
             </button>
             <button
-              className="btn primary"
+              className="btn"
               onClick={() => {
                 localStorage.setItem("feeling:ai-ack", "1");
                 setAck(true);
               }}
             >
-              Aku ngerti, lanjut
+              Aku mengerti
             </button>
           </div>
         </div>
@@ -122,27 +117,33 @@ export function Companion({
   return (
     <div className="companion">
       <div className="cmp-head">
-        <span>
-          <b>{persona.name}</b>
+        <span className="cmp-who">
+          {persona.name}
           <em className="cmp-tag">AI · bukan psikolog</em>
         </span>
-        <button className="x" onClick={onClose}>
-          ✕
+        <button className="cmp-x" onClick={onClose}>
+          Tutup
         </button>
       </div>
 
-      <div className="cmp-ctx" style={{ background: q.soft, color: q.ink }}>
-        Lagi bahas: <b>{entry.word}</b> ({entry.intensity}/10)
+      <div
+        className="cmp-ctx"
+        style={{
+          ["--ctx-ink" as string]: markVar(entry.quadrant),
+          color: "var(--ink-3)",
+        }}
+      >
+        membahas <b style={{ color: inkVar(entry.quadrant) }}>{entry.word}</b> ·{" "}
+        {String(entry.intensity).padStart(2, "0")}/10 · {QUADRANTS[entry.quadrant].label}
       </div>
 
       <div className="cmp-body">
         {msgs.length === 0 && (
-          <div className="cmp-starters">
-            <p className="muted">Mau mulai dari mana?</p>
+          <div className="starters">
             {[
-              "Aku pengen cerita aja, nggak usah dikasih solusi.",
-              "Kenapa ya aku bisa ngerasa gini?",
-              "Bantu aku mikir, aku bingung.",
+              "Aku cuma mau cerita, tidak usah dikasih solusi.",
+              "Kenapa ya aku bisa merasa begini?",
+              "Bantu aku berpikir, aku bingung.",
             ].map((s) => (
               <button key={s} className="starter" onClick={() => send(s)}>
                 {s}
@@ -152,18 +153,18 @@ export function Companion({
         )}
 
         {msgs.map((m, i) => (
-          <div key={i} className={`bubble ${m.role} ${m.crisis ? "crisis" : ""}`}>
+          <div key={i} className={`msg ${m.role} ${m.crisis ? "crisis" : ""}`}>
             {m.content.split("\n").map((line, j) => (
-              <p key={j}>{renderBold(line)}</p>
+              <p key={j}>{bold(line)}</p>
             ))}
           </div>
         ))}
 
-        {busy && <div className="bubble assistant typing">…</div>}
+        {busy && <div className="msg assistant typing">···</div>}
         <div ref={endRef} />
       </div>
 
-      <div className="cmp-input">
+      <div className="cmp-in">
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -172,6 +173,7 @@ export function Companion({
           }}
           placeholder={`Cerita ke ${persona.name}…`}
           disabled={busy}
+          aria-label="Pesan"
         />
         <button disabled={!input.trim() || busy} onClick={() => send(input.trim())}>
           Kirim
@@ -181,10 +183,9 @@ export function Companion({
   );
 }
 
-/** Minimal **bold** support — the crisis message uses it for the phone numbers. */
-function renderBold(line: string) {
-  const parts = line.split(/(\*\*[^*]+\*\*)/g);
-  return parts.map((p, i) =>
+/** Minimal **bold** — the crisis message uses it for the phone numbers. */
+function bold(line: string) {
+  return line.split(/(\*\*[^*]+\*\*)/g).map((p, i) =>
     p.startsWith("**") && p.endsWith("**") ? <b key={i}>{p.slice(2, -2)}</b> : <span key={i}>{p}</span>
   );
 }

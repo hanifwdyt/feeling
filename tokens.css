@@ -1,0 +1,127 @@
+/* Hallmark · macrostructure: app-scope (Plot-First) · genre: editorial
+ * theme: custom · vibe: "instrument, ink, graph paper, clinical warmth"
+ * paper: oklch(97% 0.003 250) · accent: NONE (by design) · quadrants are DATA ink
+ * display: Instrument Serif · body: IBM Plex Sans · data: IBM Plex Mono
+ * axes: light paper / roman-serif display / no-chromatic-accent
+ * pre-emit critique: P5 H5 E5 S5 R5 V5
+ *
+ * ── THE ONE RULE ──────────────────────────────────────────────────────────
+ * The interface has NO colour. The only colour in the entire application is
+ * the user's feeling. The instrument is black and white; the person is the
+ * colour. Every coloured pixel on screen therefore MEANS something — it is
+ * data, never decoration. If you are tempted to add a brand accent, don't:
+ * you would be taking colour away from the only thing here that earns it.
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* ── paper & ink ─────────────────────────────────────────────────────────
+     Cool off-white, not cream. Cream is spa language; this is drafting paper. */
+  --paper: oklch(97% 0.003 250);
+  --paper-2: oklch(94.5% 0.004 250);
+  --paper-3: oklch(91% 0.005 250);
+
+  --ink: oklch(22% 0.012 250);
+  --ink-2: oklch(46% 0.010 250);
+  --ink-3: oklch(66% 0.008 250);
+
+  --rule: oklch(86% 0.006 250); /* hairline */
+  --grid: oklch(92.5% 0.005 250); /* graph-paper minor */
+  --grid-major: oklch(88% 0.006 250);
+
+  /* ── the four pigments — DATA, not brand ─────────────────────────────────
+     Saturated like risograph ink or a chart's plot colours. Never pastel:
+     pastel is the sound of an app telling an angry person to calm down. */
+  --q-red: oklch(56% 0.19 27); /* high energy · unpleasant */
+  --q-yellow: oklch(74% 0.15 78); /* high energy · pleasant   */
+  --q-blue: oklch(50% 0.14 252); /* low energy  · unpleasant */
+  --q-green: oklch(54% 0.11 155); /* low energy  · pleasant   */
+
+  /* text-grade variants — the pigments are marks; these are for reading */
+  --q-red-ink: oklch(41% 0.16 27);
+  --q-yellow-ink: oklch(45% 0.10 78);
+  --q-blue-ink: oklch(39% 0.12 252);
+  --q-green-ink: oklch(38% 0.09 155);
+
+  /* faint washes — used ONLY to tint a quadrant field, never a card */
+  --q-red-wash: oklch(56% 0.19 27 / 0.07);
+  --q-yellow-wash: oklch(74% 0.15 78 / 0.09);
+  --q-blue-wash: oklch(50% 0.14 252 / 0.07);
+  --q-green-wash: oklch(54% 0.11 155 / 0.07);
+
+  --focus: oklch(45% 0.16 252);
+
+  /* ── type ────────────────────────────────────────────────────────────────
+     The thesis, in three faces: the machine speaks mono, the person speaks
+     serif, and the interface itself gets out of the way in sans. */
+  --font-display: "Instrument Serif", Georgia, serif;
+  --font-body: "IBM Plex Sans", system-ui, sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, monospace;
+
+  --text-xs: 0.6875rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.9375rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.5rem;
+  --text-2xl: 2rem;
+  --text-3xl: 2.75rem;
+  --text-display: 4rem;
+
+  /* ── space — 4pt ─────────────────────────────────────────────────────── */
+  --space-2xs: 4px;
+  --space-xs: 8px;
+  --space-sm: 12px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 36px;
+  --space-2xl: 56px;
+
+  /* ── instrument physics ──────────────────────────────────────────────────
+     A needle settles. It does not bounce. No overshoot anywhere in this app. */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 120ms;
+  --dur-base: 220ms;
+  --dur-slow: 420ms;
+
+  --rule-w: 1px;
+  --radius: 0px; /* instruments have corners */
+  --radius-sm: 2px;
+}
+
+/* ── night ──────────────────────────────────────────────────────────────────
+   People write this at 11pm, after the day has gone wrong. A blazing white
+   screen at that hour is a hostile act. The instrument panel goes dark; the
+   pigments stay exactly as saturated, because the feeling doesn't dim. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: oklch(19% 0.012 250);
+    --paper-2: oklch(23% 0.013 250);
+    --paper-3: oklch(28% 0.014 250);
+
+    --ink: oklch(93% 0.005 250);
+    --ink-2: oklch(70% 0.008 250);
+    --ink-3: oklch(50% 0.010 250);
+
+    --rule: oklch(33% 0.014 250);
+    --grid: oklch(24% 0.013 250);
+    --grid-major: oklch(28% 0.014 250);
+
+    --q-red: oklch(65% 0.18 27);
+    --q-yellow: oklch(80% 0.14 78);
+    --q-blue: oklch(65% 0.13 252);
+    --q-green: oklch(68% 0.11 155);
+
+    --q-red-ink: oklch(72% 0.16 27);
+    --q-yellow-ink: oklch(84% 0.12 78);
+    --q-blue-ink: oklch(72% 0.12 252);
+    --q-green-ink: oklch(74% 0.10 155);
+
+    --q-red-wash: oklch(65% 0.18 27 / 0.13);
+    --q-yellow-wash: oklch(80% 0.14 78 / 0.13);
+    --q-blue-wash: oklch(65% 0.13 252 / 0.13);
+    --q-green-wash: oklch(68% 0.11 155 / 0.13);
+
+    --focus: oklch(72% 0.14 252);
+  }
+}

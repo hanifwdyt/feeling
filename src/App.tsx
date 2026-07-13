@@ -13,12 +13,12 @@ import {
   type Entry,
 } from "./lib/store";
 
-type Tab = "jurnal" | "pola";
+type Tab = "ledger" | "pattern";
 
 export default function App() {
   const [persona, setPersona] = useState<Persona | null>(() => loadPersona());
   const [entries, setEntries] = useState<Entry[]>(() => loadEntries());
-  const [tab, setTab] = useState<Tab>("jurnal");
+  const [tab, setTab] = useState<Tab>("ledger");
   const [checkin, setCheckin] = useState(false);
   const [talking, setTalking] = useState<Entry | null>(null);
   const [aiOn, setAiOn] = useState(false);
@@ -34,7 +34,7 @@ export default function App() {
 
   useEffect(() => {
     if (!toast) return;
-    const t = setTimeout(() => setToast(null), 2600);
+    const t = setTimeout(() => setToast(null), 2400);
     return () => clearTimeout(t);
   }, [toast]);
 
@@ -56,7 +56,7 @@ export default function App() {
         onSave={(d: Draft) => {
           setEntries(addEntry(d));
           setCheckin(false);
-          setToast("Kecatat.");
+          setToast("Tercatat");
         }}
       />
     );
@@ -65,20 +65,20 @@ export default function App() {
   return (
     <div className="app">
       <header className="top">
-        <div>
-          <h1>feeling</h1>
-          <p className="sub">
-            {entries.length === 0
-              ? "belum ada catatan"
-              : `${entries.length} catatan · disimpan di HP ini`}
-          </p>
-        </div>
-        <div className="top-act">
-          <button className="icon" title="Backup ke file" onClick={exportJSON}>
-            ↓
+        <span className="mark">
+          feeling<em>.</em>
+        </span>
+        <span className="meta">
+          {entries.length === 0
+            ? "kosong"
+            : `${String(entries.length).padStart(2, "0")} catatan · lokal`}
+        </span>
+        <span className="top-act">
+          <button className="io" onClick={exportJSON} title="Simpan salinan ke file">
+            Ekspor
           </button>
-          <button className="icon" title="Pulihkan dari file" onClick={() => fileRef.current?.click()}>
-            ↑
+          <button className="io" onClick={() => fileRef.current?.click()} title="Pulihkan dari file">
+            Impor
           </button>
           <input
             ref={fileRef}
@@ -91,34 +91,34 @@ export default function App() {
               try {
                 const r = await importJSON(f);
                 setEntries(loadEntries());
-                setToast(`${r.added} catatan ditambahkan.`);
+                setToast(`+${r.added} catatan`);
               } catch {
-                setToast("File-nya nggak kebaca.");
+                setToast("File tidak terbaca");
               }
               e.target.value = "";
             }}
           />
-        </div>
+        </span>
       </header>
 
       <nav className="tabs">
-        <button className={tab === "jurnal" ? "on" : ""} onClick={() => setTab("jurnal")}>
-          Jurnal
+        <button className={tab === "ledger" ? "on" : ""} onClick={() => setTab("ledger")}>
+          Catatan
         </button>
-        <button className={tab === "pola" ? "on" : ""} onClick={() => setTab("pola")}>
+        <button className={tab === "pattern" ? "on" : ""} onClick={() => setTab("pattern")}>
           Pola
         </button>
       </nav>
 
       <main className="body">
-        {tab === "jurnal" ? (
+        {tab === "ledger" ? (
           <History
             entries={entries}
             aiOn={aiOn}
             onTalk={(e) => setTalking(e)}
             onDelete={(id) => {
               setEntries(deleteEntry(id));
-              setToast("Dihapus.");
+              setToast("Dihapus");
             }}
           />
         ) : (
@@ -127,7 +127,7 @@ export default function App() {
       </main>
 
       <button className="fab" onClick={() => setCheckin(true)}>
-        Lagi ngerasa apa?
+        Catat sekarang
       </button>
 
       {talking && (
