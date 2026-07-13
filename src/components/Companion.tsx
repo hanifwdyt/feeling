@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { QUADRANTS, type QuadrantId } from "../lib/emotions";
 import type { Entry } from "../lib/store";
 import type { Persona } from "../lib/persona";
+import { Naming } from "./Naming";
+import { Soft } from "./Soft";
+import { motion, AnimatePresence } from "motion/react";
 
 interface Msg {
   role: "user" | "assistant";
@@ -9,34 +12,54 @@ interface Msg {
   crisis?: boolean;
 }
 
-const inkVar = (q: QuadrantId) => `var(--q-${q}-ink)`;
-const markVar = (q: QuadrantId) => `var(--q-${q})`;
+export interface Named {
+  word: string;
+  quadrant: QuadrantId;
+  intensity: number;
+  note: string;
+}
 
 /**
- * PRIVACY — the one place data leaves the device.
+ * The sofa.
  *
- * The journal is local-only; this panel is the single exception, and it is
- * opt-in with an explicit disclosure. We send exactly ONE entry — the one the
- * user opened this on — plus what they type here. Never the history.
+ * You lie down. You talk. Something listens. That is the entire primary flow,
+ * and it asks nothing of you first.
+ *
+ * `entry` is OPTIONAL by design. When it's null the user came here to vent with
+ * no structure at all — which is the common case for someone exhausted — and
+ * only once they've unburdened do we offer, once, to help name it.
+ *
+ * PRIVACY: the journal never leaves the device; this panel is the one exception,
+ * and it's opt-in with a plain-language disclosure. We send the current entry
+ * (if any) and what's typed here. Never the history.
  */
 export function Companion({
   entry,
   persona,
   onClose,
+  onSaveNamed,
 }: {
-  entry: Entry;
+  entry: Entry | null;
   persona: Persona;
   onClose: () => void;
+  onSaveNamed?: (n: Named) => void;
 }) {
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [ack, setAck] = useState(() => localStorage.getItem("feeling:ai-ack") === "1");
+  const [naming, setNaming] = useState(false);
+  const [offered, setOffered] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [msgs, busy]);
+  }, [msgs, busy, naming]);
+
+  const said = msgs.filter((m) => m.role === "user").length;
+  // Offer the word only once they've actually unburdened. Asking too early turns
+  // the sofa back into a form.
+  const canOffer = !entry && !!onSaveNamed && said >= 2 && !busy && !naming && !offered;
 
   async function send(text: string) {
     const next: Msg[] = [...msgs, { role: "user", content: text }];
@@ -49,12 +72,14 @@ export function Companion({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           persona,
-          entry: {
-            word: entry.word,
-            intensity: entry.intensity,
-            contexts: entry.contexts,
-            note: entry.note,
-          },
+          entry: entry
+            ? {
+                word: entry.word,
+                intensity: entry.intensity,
+                contexts: entry.contexts,
+                note: entry.note,
+              }
+            : null,
           messages: next.map((m) => ({ role: m.role, content: m.content })),
         }),
       });
@@ -71,42 +96,49 @@ export function Companion({
     }
   }
 
+  /** What they actually said — kept as the entry's note, in their own words. */
+  const spoken = () =>
+    msgs
+      .filter((m) => m.role === "user")
+      .map((m) => m.content)
+      .join("\n\n");
+
+  // ── the disclosure. Shown once, and it doesn't soften the truth. ──────────
   if (!ack) {
     return (
-      <div className="companion">
-        <div className="cmp-head">
-          <span className="cmp-who">Sebelum mulai</span>
-          <button className="cmp-x" onClick={onClose}>
+      <div className="sofa">
+        <div className="sofa-top">
+          <span className="sofa-who">Sebentar dulu</span>
+          <button className="sofa-x" data-soft onClick={onClose}>
             Tutup
           </button>
         </div>
-        <div className="privacy">
+        <div className="disclose">
           <h3>Yang ini keluar dari perangkatmu.</h3>
           <p>
-            Jurnalmu disimpan <b>hanya di sini</b> — tidak pernah dikirim ke mana pun. Tapi kalau
-            kamu bicara dengan {persona.name}, isi percakapan itu <b>dikirim ke server AI</b> supaya
-            bisa dijawab.
+            Jurnalmu disimpan <b>cuma di sini</b> — nggak pernah dikirim ke mana-mana. Tapi kalau
+            kamu cerita ke {persona.name}, isi obrolannya <b>dikirim ke server AI</b> supaya bisa
+            dijawab.
           </p>
           <p>
-            Yang dikirim hanya <b>catatan yang sedang kamu buka ini</b> dan apa yang kamu ketik.
-            Riwayat jurnalmu yang lain <b>tidak ikut</b>.
+            Yang dikirim cuma <b>obrolan ini</b>. Catatan-catatanmu yang lain <b>nggak ikut</b>.
           </p>
           <p className="fine">
-            Kalau kamu tidak nyaman, tidak apa-apa — tutup saja. Sisa aplikasinya tetap jalan penuh
-            tanpa ini.
+            Kalau nggak nyaman, nggak apa-apa — tutup aja. Sisa aplikasinya tetap jalan penuh.
           </p>
-          <div className="privacy-act">
-            <button className="btn ghost" onClick={onClose}>
-              Tidak dulu
+          <div className="disclose-act">
+            <button className="soft-btn ghost" data-soft onClick={onClose}>
+              Nggak dulu
             </button>
             <button
-              className="btn"
+              className="soft-btn"
+              data-soft
               onClick={() => {
                 localStorage.setItem("feeling:ai-ack", "1");
                 setAck(true);
               }}
             >
-              Aku mengerti
+              Aku ngerti
             </button>
           </div>
         </div>
@@ -115,70 +147,126 @@ export function Companion({
   }
 
   return (
-    <div className="companion">
-      <div className="cmp-head">
-        <span className="cmp-who">
+    <div className="sofa">
+      <div className="sofa-top">
+        <span className="sofa-who">
           {persona.name}
-          <em className="cmp-tag">AI · bukan psikolog</em>
+          <em className="sofa-tag">AI · bukan psikolog</em>
         </span>
-        <button className="cmp-x" onClick={onClose}>
+        <button className="sofa-x" data-soft onClick={onClose}>
           Tutup
         </button>
       </div>
 
-      <div
-        className="cmp-ctx"
-        style={{
-          ["--ctx-ink" as string]: markVar(entry.quadrant),
-          color: "var(--ink-3)",
-        }}
-      >
-        membahas <b style={{ color: inkVar(entry.quadrant) }}>{entry.word}</b> ·{" "}
-        {String(entry.intensity).padStart(2, "0")}/10 · {QUADRANTS[entry.quadrant].label}
-      </div>
+      {entry && (
+        <div className="sofa-ctx" style={{ background: `var(--f-${entry.quadrant})` }}>
+          <span style={{ color: `var(--f-${entry.quadrant}-ink)` }}>
+            lagi bahas <b>{entry.word}</b> · {entry.intensity}/10 ·{" "}
+            {QUADRANTS[entry.quadrant].label.toLowerCase()}
+          </span>
+        </div>
+      )}
 
-      <div className="cmp-body">
+      <div className="sofa-body">
         {msgs.length === 0 && (
-          <div className="starters">
-            {[
-              "Aku cuma mau cerita, tidak usah dikasih solusi.",
-              "Kenapa ya aku bisa merasa begini?",
-              "Bantu aku berpikir, aku bingung.",
-            ].map((s) => (
-              <button key={s} className="starter" onClick={() => send(s)}>
-                {s}
-              </button>
-            ))}
+          <div className="opening">
+            <p className="opening-l">
+              Ngeloso aja. Nggak usah rapi, nggak usah urut.
+            </p>
+            <div className="openers">
+              {[
+                "Aku cuma mau cerita, nggak usah dikasih solusi.",
+                "Hari ini berat banget.",
+                "Aku nggak tau aku ngerasa apa.",
+              ].map((s) => (
+                <button key={s} className="opener" data-soft onClick={() => send(s)}>
+                  {s}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
-        {msgs.map((m, i) => (
-          <div key={i} className={`msg ${m.role} ${m.crisis ? "crisis" : ""}`}>
-            {m.content.split("\n").map((line, j) => (
-              <p key={j}>{bold(line)}</p>
-            ))}
-          </div>
-        ))}
+        <AnimatePresence initial={false}>
+          {msgs.map((m, i) => (
+            <motion.div
+              key={i}
+              className={`bubble ${m.role} ${m.crisis ? "crisis" : ""}`}
+              initial={{ y: 10, opacity: 0, scale: 0.97 }}
+              animate={{ y: 0, opacity: 1, scale: 1 }}
+              transition={{ type: "spring", stiffness: 360, damping: 28, mass: 0.8 }}
+            >
+              {m.content.split("\n").map((line, j) => (
+                <p key={j}>{bold(line)}</p>
+              ))}
+            </motion.div>
+          ))}
+        </AnimatePresence>
 
-        {busy && <div className="msg assistant typing">···</div>}
+        {busy && (
+          <div className="bubble assistant breathing" data-soft>
+            <span />
+            <span />
+            <span />
+          </div>
+        )}
+
+        {/* Offered once, quietly, only after they've said something real. */}
+        {canOffer && (
+          <div className="offer">
+            <p>Udah agak lega? Boleh aku bantu namain yang barusan?</p>
+            <div className="offer-act">
+              <button className="soft-btn sm" data-soft onClick={() => setNaming(true)}>
+                Boleh
+              </button>
+              <button
+                className="soft-btn sm ghost"
+                data-soft
+                onClick={() => setOffered(true)}
+              >
+                Nanti aja
+              </button>
+            </div>
+          </div>
+        )}
+
+        {naming && onSaveNamed && (
+          <Naming
+            onPick={(word, quadrant, intensity) =>
+              onSaveNamed({ word, quadrant, intensity, note: spoken() })
+            }
+            onSkip={() => {
+              setNaming(false);
+              setOffered(true);
+            }}
+          />
+        )}
+
         <div ref={endRef} />
       </div>
 
-      <div className="cmp-in">
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && input.trim() && !busy) send(input.trim());
-          }}
-          placeholder={`Cerita ke ${persona.name}…`}
-          disabled={busy}
-          aria-label="Pesan"
-        />
-        <button disabled={!input.trim() || busy} onClick={() => send(input.trim())}>
-          Kirim
-        </button>
-      </div>
+      {!naming && (
+        <div className="sofa-in">
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && input.trim() && !busy) send(input.trim());
+            }}
+            placeholder="Cerita aja…"
+            disabled={busy}
+            aria-label="Cerita"
+            data-soft
+          />
+          <Soft
+            disabled={!input.trim() || busy}
+            onClick={() => send(input.trim())}
+            aria-label="Kirim"
+          >
+            ↑
+          </Soft>
+        </div>
+      )}
     </div>
   );
 }

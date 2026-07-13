@@ -1,11 +1,20 @@
 [
   {
     "date": "2026-07-13",
+    "macrostructure": "app-scope (Sofa)",
+    "theme": "custom",
+    "theme_axes": "light paper / soft-serif display / warm-pastel",
+    "vibe": "pastel sofa, floating, cotton-soft, someone listening",
+    "enrichment": "none \u2014 the couch IS the object",
+    "brief": "feeling.hanif.app \u00b7 redesign #2: instrument was cold; sofa + talk-first"
+  },
+  {
+    "date": "2026-07-13",
     "macrostructure": "app-scope (Plot-First)",
     "theme": "custom",
     "theme_axes": "light paper / roman-serif display / no-chromatic-accent",
-    "vibe": "instrument, ink, graph paper, clinical warmth",
-    "enrichment": "none — typography + coordinate plane",
-    "brief": "feeling.hanif.app · emotion journal · redesign away from category slop"
+    "vibe": "instrument, ink, graph paper",
+    "enrichment": "none",
+    "brief": "feeling.hanif.app \u00b7 redesign #1 (REJECTED \u2014 correct argument, wrong feeling)"
   }
 ]

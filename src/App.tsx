@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { CheckIn, type Draft } from "./components/CheckIn";
 import { Insights, History } from "./components/Insights";
-import { Companion } from "./components/Companion";
+import { Companion, type Named } from "./components/Companion";
 import { Onboarding } from "./components/Onboarding";
 import { loadPersona, savePersona, type Persona } from "./lib/persona";
+import { CottonCursor } from "./components/CottonCursor";
+import { Soft } from "./components/Soft";
+import { AnimatePresence, motion } from "motion/react";
 import {
   addEntry,
   deleteEntry,
@@ -13,14 +16,15 @@ import {
   type Entry,
 } from "./lib/store";
 
-type Tab = "ledger" | "pattern";
+type View = "home" | "pattern";
 
 export default function App() {
   const [persona, setPersona] = useState<Persona | null>(() => loadPersona());
   const [entries, setEntries] = useState<Entry[]>(() => loadEntries());
-  const [tab, setTab] = useState<Tab>("ledger");
+  const [view, setView] = useState<View>("home");
   const [checkin, setCheckin] = useState(false);
-  const [talking, setTalking] = useState<Entry | null>(null);
+  /** `null` + open = free venting (the primary path). An Entry = talking about it. */
+  const [sofa, setSofa] = useState<{ entry: Entry | null } | null>(null);
   const [aiOn, setAiOn] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -56,30 +60,32 @@ export default function App() {
         onSave={(d: Draft) => {
           setEntries(addEntry(d));
           setCheckin(false);
-          setToast("Tercatat");
+          setToast("Kecatat");
         }}
       />
     );
   }
 
   return (
-    <div className="app">
-      <header className="top">
-        <span className="mark">
-          feeling<em>.</em>
-        </span>
-        <span className="meta">
-          {entries.length === 0
-            ? "kosong"
-            : `${String(entries.length).padStart(2, "0")} catatan · lokal`}
-        </span>
-        <span className="top-act">
-          <button className="io" onClick={exportJSON} title="Simpan salinan ke file">
-            Ekspor
-          </button>
-          <button className="io" onClick={() => fileRef.current?.click()} title="Pulihkan dari file">
-            Impor
-          </button>
+    <div className="room">
+      <CottonCursor />
+      <header className="head">
+        <span className="logo">feeling</span>
+        <nav className="nav">
+          <Soft className={view === "home" ? "on" : ""} lift={0} sink={0} onClick={() => setView("home")}>
+            Beranda
+          </Soft>
+          <Soft className={view === "pattern" ? "on" : ""} lift={0} sink={0} onClick={() => setView("pattern")}>
+            Pola
+          </Soft>
+        </nav>
+        <span className="io-group">
+          <Soft className="io" onClick={exportJSON} title="Simpan salinan">
+            ↓
+          </Soft>
+          <Soft className="io" onClick={() => fileRef.current?.click()} title="Pulihkan">
+            ↑
+          </Soft>
           <input
             ref={fileRef}
             type="file"
@@ -93,7 +99,7 @@ export default function App() {
                 setEntries(loadEntries());
                 setToast(`+${r.added} catatan`);
               } catch {
-                setToast("File tidak terbaca");
+                setToast("File nggak kebaca");
               }
               e.target.value = "";
             }}
@@ -101,43 +107,112 @@ export default function App() {
         </span>
       </header>
 
-      <nav className="tabs">
-        <button className={tab === "ledger" ? "on" : ""} onClick={() => setTab("ledger")}>
-          Catatan
-        </button>
-        <button className={tab === "pattern" ? "on" : ""} onClick={() => setTab("pattern")}>
-          Pola
-        </button>
-      </nav>
+      {view === "home" ? (
+        <main className="home">
+          {/* ── THE SOFA ───────────────────────────────────────────────────
+              The first and largest thing on the page. A tired person should be
+              able to start talking without reading anything, deciding anything,
+              or filling in anything. One press. */}
+          <motion.button
+            className="couch"
+            data-soft
+            onClick={() => aiOn && setSofa({ entry: null })}
+            whileHover={{ y: -5 }}
+            whileTap={{ y: 7, scale: 0.99 }}
+            transition={{ type: "spring", stiffness: 260, damping: 28, mass: 1.1 }}
+          >
+            <div className="couch-seat">
+              <h1>
+                Cerita aja.
+                <br />
+                <em>Aku dengerin.</em>
+              </h1>
+              <p>
+                Nggak usah rapi. Nggak usah tau kamu lagi ngerasa apa. Ngomong dulu — namanya
+                belakangan.
+              </p>
+              {aiOn ? (
+                <span className="couch-cta">Mulai cerita →</span>
+              ) : (
+                <span className="couch-off">
+                  Teman ceritanya lagi nggak aktif. Kamu tetap bisa mencatat perasaan di bawah.
+                </span>
+              )}
+            </div>
+          </motion.button>
 
-      <main className="body">
-        {tab === "ledger" ? (
-          <History
-            entries={entries}
-            aiOn={aiOn}
-            onTalk={(e) => setTalking(e)}
-            onDelete={(id) => {
-              setEntries(deleteEntry(id));
-              setToast("Dihapus");
-            }}
-          />
-        ) : (
+          <Soft className="quick" sink={1} lift={0} onClick={() => setCheckin(true)}>
+            atau <b>catat cepat</b> — kalau kamu udah tau rasanya apa
+          </Soft>
+
+          {entries.length > 0 && (
+            <section className="recent">
+              <h2 className="recent-t">Yang udah kamu ceritakan</h2>
+              <History
+                entries={entries}
+                aiOn={aiOn}
+                onTalk={(e) => setSofa({ entry: e })}
+                onDelete={(id) => {
+                  setEntries(deleteEntry(id));
+                  setToast("Dihapus");
+                }}
+              />
+            </section>
+          )}
+        </main>
+      ) : (
+        <main className="home">
           <Insights entries={entries} />
-        )}
-      </main>
-
-      <button className="fab" onClick={() => setCheckin(true)}>
-        Catat sekarang
-      </button>
-
-      {talking && (
-        <div className="sheet">
-          <div className="scrim" onClick={() => setTalking(null)} />
-          <Companion entry={talking} persona={persona} onClose={() => setTalking(null)} />
-        </div>
+        </main>
       )}
 
-      {toast && <div className="toast">{toast}</div>}
+      <AnimatePresence>
+      {sofa && (
+        <div className="overlay">
+          <motion.div
+            className="veil"
+            onClick={() => setSofa(null)}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          />
+          <Companion
+            entry={sofa.entry}
+            persona={persona}
+            onClose={() => setSofa(null)}
+            onSaveNamed={(n: Named) => {
+              setEntries(
+                addEntry({
+                  x: n.quadrant === "red" || n.quadrant === "blue" ? -0.5 : 0.5,
+                  y: n.quadrant === "red" || n.quadrant === "yellow" ? 0.5 : -0.5,
+                  quadrant: n.quadrant,
+                  word: n.word,
+                  intensity: n.intensity,
+                  contexts: [],
+                  note: n.note,
+                })
+              );
+              setSofa(null);
+              setToast("Kecatat. Makasih udah cerita.");
+            }}
+          />
+        </div>
+      )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            className="toast"
+            initial={{ y: 16, opacity: 0, scale: 0.96 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            exit={{ y: 10, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 380, damping: 30 }}
+          >
+            {toast}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

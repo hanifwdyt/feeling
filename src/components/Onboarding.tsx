@@ -1,12 +1,18 @@
 import { useState } from "react";
 import { STYLE_OPTIONS, type Persona, type StyleId } from "../lib/persona";
+import { Soft } from "./Soft";
 
 /**
  * First run.
  *
- * The three tenets are stated up front, numbered, because they ARE the product:
- * precision over comfort, honesty over engagement, privacy by construction. An
- * app that buries its position in a settings page doesn't really hold it.
+ * The three promises are stated plainly, because they ARE the product — and
+ * because two of them are things this app REFUSES to do. An app that buries its
+ * refusals in a settings page isn't really making them.
+ *
+ * Register note: this copy used to open with "alat untuk melokalisir apa yang
+ * kamu rasakan" — lab language, left over from an earlier direction. It's warm
+ * now. The first thing an exhausted person reads should not sound like an
+ * instrument manual.
  */
 export function Onboarding({ onDone }: { onDone: (p: Persona) => void }) {
   const [name, setName] = useState("");
@@ -15,35 +21,35 @@ export function Onboarding({ onDone }: { onDone: (p: Persona) => void }) {
   const [step, setStep] = useState<0 | 1>(0);
 
   return (
-    <div className="onboard">
+    <div className="room onboard">
       {step === 0 && (
         <div className="ob-panel">
           <h1 className="ob-mark">
             feeling<em>.</em>
           </h1>
           <p className="ob-lead">
-            Alat untuk melokalisir apa yang kamu rasakan — bukan sekadar “lagi baik” atau “lagi
-            tidak”.
+            Tempat buat ngeloso dan cerita — terus pelan-pelan ngerti apa yang sebenernya kamu
+            rasain.
           </p>
 
           <div className="tenets">
             <div className="tenet">
               <span className="no">01</span>
               <span>
-                <b>Namai dengan tepat.</b>
+                <b>Ngomong dulu, namanya belakangan.</b>
                 <span>
-                  Bisa membedakan <i>kesal</i> dari <i>kecewa</i> itu bukan main-main kata. Orang
-                  yang menamai lebih presisi terbukti lebih tenang menghadapinya.
+                  Kamu sering nggak tau kamu ngerasa apa sampai kamu ngomongin dulu. Jadi di sini
+                  nggak ada form yang harus diisi sebelum kamu boleh cerita.
                 </span>
               </span>
             </div>
             <div className="tenet">
               <span className="no">02</span>
               <span>
-                <b>Tidak ada streak.</b>
+                <b>Nggak ada streak.</b>
                 <span>
-                  Sengaja. Begitu kamu mengejar angka, kamu mulai menulis “aman saja” di hari yang
-                  tidak aman — dan datanya jadi bohong.
+                  Sengaja. Begitu kamu ngejar angka, kamu mulai nulis “aman aja” di hari yang nggak
+                  aman — dan catatanmu jadi bohong.
                 </span>
               </span>
             </div>
@@ -52,24 +58,24 @@ export function Onboarding({ onDone }: { onDone: (p: Persona) => void }) {
               <span>
                 <b>Datanya tinggal di sini.</b>
                 <span>
-                  Tidak ada server, tidak ada akun. Tidak ada yang bisa membacanya — termasuk aku.
+                  Nggak ada server, nggak ada akun. Nggak ada yang bisa baca — termasuk aku.
                 </span>
               </span>
             </div>
           </div>
 
-          <button className="btn" onClick={() => setStep(1)}>
+          <Soft className="soft-btn wide" onClick={() => setStep(1)}>
             Lanjut
-          </button>
+          </Soft>
         </div>
       )}
 
       {step === 1 && (
         <div className="ob-panel">
-          <h2>Siapa yang mendengarkan?</h2>
+          <h2>Siapa yang dengerin?</h2>
           <p className="ob-lead sm">
-            Nanti kamu bisa menceritakan catatanmu ke dia. Dia AI — bukan psikolog, dan tidak akan
-            berpura-pura jadi psikolog.
+            Kamu yang nentuin dia kayak gimana. Dia AI — bukan psikolog, dan nggak bakal pura-pura
+            jadi psikolog.
           </p>
 
           <label className="field-l" htmlFor="ob-name">
@@ -84,10 +90,10 @@ export function Onboarding({ onDone }: { onDone: (p: Persona) => void }) {
             maxLength={40}
           />
 
-          <label className="field-l">Cara dia menanggapi</label>
+          <label className="field-l">Cara dia nanggepin</label>
           <div className="voices">
             {STYLE_OPTIONS.map((s) => (
-              <button
+              <Soft
                 key={s.id}
                 className={`voice ${style === s.id ? "on" : ""}`}
                 aria-pressed={style === s.id}
@@ -96,16 +102,16 @@ export function Onboarding({ onDone }: { onDone: (p: Persona) => void }) {
                 <b>{s.label}</b>
                 <span className="blurb">{s.blurb}</span>
                 <span className="sample">{s.sample}</span>
-              </button>
+              </Soft>
             ))}
-            <button
+            <Soft
               className={`voice ${style === "custom" ? "on" : ""}`}
               aria-pressed={style === "custom"}
               onClick={() => setStyle("custom")}
             >
               <b>Tulis sendiri</b>
-              <span className="blurb">Kamu yang menentukan karakternya.</span>
-            </button>
+              <span className="blurb">Kamu yang nentuin karakternya.</span>
+            </Soft>
           </div>
 
           {style === "custom" && (
@@ -115,22 +121,20 @@ export function Onboarding({ onDone }: { onDone: (p: Persona) => void }) {
               rows={3}
               value={custom}
               onChange={(e) => setCustom(e.target.value)}
-              placeholder="Sabar, tidak banyak bicara, suka memberi analogi, sesekali menyeletuk…"
+              placeholder="Sabar, nggak banyak omong, suka ngasih analogi, kadang nyeletuk…"
               maxLength={500}
               aria-label="Karakter kustom"
             />
           )}
 
-          <button
-            className="btn"
-            onClick={() =>
-              onDone({ name: name.trim() || "Temen", style, custom: custom.trim() })
-            }
+          <Soft
+            className="soft-btn wide"
+            onClick={() => onDone({ name: name.trim() || "Temen", style, custom: custom.trim() })}
           >
             Mulai
-          </button>
+          </Soft>
           <p className="ob-fine">
-            Bisa diubah kapan saja. Kalau kamu tidak ingin memakai AI sama sekali, cukup jangan
+            Bisa diubah kapan aja. Kalau kamu nggak mau pakai AI sama sekali, tinggal nggak usah
             dibuka — sisa aplikasinya jalan penuh tanpa itu.
           </p>
         </div>

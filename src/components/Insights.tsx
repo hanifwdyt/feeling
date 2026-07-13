@@ -3,8 +3,9 @@ import { buildInsights, summarize, dailyTrend, topWords } from "../lib/insights"
 import type { Entry } from "../lib/store";
 
 /** Quadrant colour, always via token — never an inline value. */
-const inkVar = (q: QuadrantId) => `var(--q-${q}-ink)`;
-const markVar = (q: QuadrantId) => `var(--q-${q})`;
+const inkVar = (q: QuadrantId) => `var(--f-${q}-ink)`;
+const markVar = (q: QuadrantId) => `var(--f-${q})`;
+const baseVar = (q: QuadrantId) => `var(--f-${q}-base)`;
 
 /**
  * The pattern sheet — a chart, not a dashboard.
@@ -22,14 +23,14 @@ export function Insights({ entries }: { entries: Entry[] }) {
 
   return (
     <div>
-      <div className="sheet-block">
+      <div className="card">
         <div className="figures">
           <div className="figure">
-            <div className="n">{String(s.total).padStart(2, "0")}</div>
+            <div className="n">{s.total}</div>
             <div className="l">catatan</div>
           </div>
           <div className="figure">
-            <div className="n">{String(s.distinctWords).padStart(2, "0")}</div>
+            <div className="n">{s.distinctWords}</div>
             <div className="l">kata berbeda</div>
           </div>
           <div className="figure">
@@ -40,8 +41,8 @@ export function Insights({ entries }: { entries: Entry[] }) {
       </div>
 
       {entries.length > 0 && (
-        <div className="sheet-block">
-          <div className="block-t">Rasa · 14 hari</div>
+        <div className="card">
+          <h2 className="block-t">Rasa · 14 hari</h2>
           <div className="strip">
             {trend.map((d) => {
               if (d.valence === null) {
@@ -62,15 +63,15 @@ export function Insights({ entries }: { entries: Entry[] }) {
             })}
           </div>
           <div className="strip-x">
-            <span>−14h</span>
+            <span>2 minggu lalu</span>
             <span>hari ini</span>
           </div>
         </div>
       )}
 
       {entries.length > 0 && (
-        <div className="sheet-block">
-          <div className="block-t">Sebaran zona</div>
+        <div className="card">
+          <h2 className="block-t">Sebaran zona</h2>
           <div className="dist">
             {(["yellow", "green", "red", "blue"] as QuadrantId[]).map((q) => {
               const n = s.byQuadrant[q];
@@ -99,14 +100,20 @@ export function Insights({ entries }: { entries: Entry[] }) {
       ))}
 
       {words.length > 0 && (
-        <div className="sheet-block">
-          <div className="block-t">Kosakata terpakai</div>
+        <div className="card">
+          <h2 className="block-t">Kata yang kamu pakai</h2>
           <div className="lexicon-used">
             {words.map((w) => (
-              <span key={w.word} className="lu">
-                <span className="lu-w" style={{ color: inkVar(w.quadrant) }}>
-                  {w.word}
-                </span>
+              <span
+                key={w.word}
+                className="lu"
+                style={{
+                  background: markVar(w.quadrant),
+                  color: inkVar(w.quadrant),
+                  ["--lu-base" as string]: baseVar(w.quadrant),
+                }}
+              >
+                {w.word}
                 <span className="lu-n">{w.count}</span>
               </span>
             ))}
@@ -131,13 +138,13 @@ export function History({
   if (entries.length === 0) {
     return (
       <p className="empty">
-        Belum ada apa-apa di sini. Mulai kapan pun kamu benar-benar merasakan sesuatu.
+        Belum ada apa-apa di sini. Mulai kapan pun kamu siap.
       </p>
     );
   }
 
   return (
-    <div className="ledger">
+    <div className="entries">
       {entries.map((e) => {
         const d = new Date(e.at);
         return (
@@ -145,14 +152,15 @@ export function History({
             key={e.id}
             className="entry"
             style={{
-              ["--entry-ink" as string]: markVar(e.quadrant),
+              ["--entry-tint" as string]: markVar(e.quadrant),
+              ["--entry-base" as string]: baseVar(e.quadrant),
             }}
           >
             <div className="entry-h">
               <span className="entry-w" style={{ color: inkVar(e.quadrant) }}>
                 {e.word}
               </span>
-              <span className="entry-i">{String(e.intensity).padStart(2, "0")}/10</span>
+              <span className="entry-i">{e.intensity}/10</span>
               <span className="entry-t">
                 {d.toLocaleDateString("id-ID", { day: "2-digit", month: "short" })}{" "}
                 {d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
