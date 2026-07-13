@@ -105,8 +105,12 @@
      Fraunces has literal SOFT and WONK axes — a typeface engineered to be warm
      rather than merely pretty. Satoshi keeps the UI friendly without going
      saccharine. Nothing here is monospaced: this is not an instrument. */
-  --font-display: "Fraunces", Georgia, serif;
-  --font-body: "Satoshi", system-ui, sans-serif;
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  /* System stack: SF Pro on iOS, Roboto on Android, Segoe on Windows. Costs
+     nothing, paints instantly, and feels more native than a downloaded sans. */
+  --font-body:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+    system-ui, sans-serif;
 
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;

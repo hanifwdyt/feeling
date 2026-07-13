@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { motion, useMotionValue, useSpring, useTransform, useVelocity } from "motion/react";
+import { m, useMotionValue, useSpring, useTransform, useVelocity } from "motion/react";
 
 /**
  * The cotton cursor.
@@ -83,7 +83,7 @@ export function CottonCursor() {
   if (!enabled) return null;
 
   return (
-    <motion.div
+    <m.div
       className="cotton"
       aria-hidden="true"
       style={{ x: sx, y: sy, rotate: angle, scaleX: stretch, scaleY: squish }}

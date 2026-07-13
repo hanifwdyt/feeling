@@ -1,4 +1,4 @@
-import { motion, type HTMLMotionProps } from "motion/react";
+import { m, type HTMLMotionProps } from "motion/react";
 
 /**
  * Soft — the one pressable primitive.
@@ -15,6 +15,10 @@ import { motion, type HTMLMotionProps } from "motion/react";
  *
  * Do not add a bouncy overshoot here. On a page someone opens when they're
  * exhausted, a UI that boings at them is a UI that isn't listening.
+ *
+ * Uses `m` rather than `motion`: with LazyMotion (see main.tsx) only the DOM
+ * animation features get bundled, which is most of the library's weight left on
+ * the floor. `motion.*` would silently pull the whole thing back in.
  */
 
 /** The house spring. One feel, everywhere. */
@@ -32,7 +36,7 @@ type Props = HTMLMotionProps<"button"> & {
 
 export function Soft({ sink = 2, lift = 2, heavy = false, children, ...rest }: Props) {
   return (
-    <motion.button
+    <m.button
       data-soft
       whileHover={lift ? { y: -lift } : undefined}
       whileTap={{ y: sink, scale: 0.985 }}
@@ -40,6 +44,6 @@ export function Soft({ sink = 2, lift = 2, heavy = false, children, ...rest }: P
       {...rest}
     >
       {children}
-    </motion.button>
+    </m.button>
   );
 }

@@ -4,7 +4,7 @@ import type { Entry } from "../lib/store";
 import type { Persona } from "../lib/persona";
 import { Naming } from "./Naming";
 import { Soft } from "./Soft";
-import { motion, AnimatePresence } from "motion/react";
+import { m, AnimatePresence } from "motion/react";
 
 interface Msg {
   role: "user" | "assistant";
@@ -188,18 +188,18 @@ export function Companion({
         )}
 
         <AnimatePresence initial={false}>
-          {msgs.map((m, i) => (
-            <motion.div
+          {msgs.map((msg, i) => (
+            <m.div
               key={i}
-              className={`bubble ${m.role} ${m.crisis ? "crisis" : ""}`}
+              className={`bubble ${msg.role} ${msg.crisis ? "crisis" : ""}`}
               initial={{ y: 10, opacity: 0, scale: 0.97 }}
               animate={{ y: 0, opacity: 1, scale: 1 }}
               transition={{ type: "spring", stiffness: 360, damping: 28, mass: 0.8 }}
             >
-              {m.content.split("\n").map((line, j) => (
+              {msg.content.split("\n").map((line, j) => (
                 <p key={j}>{bold(line)}</p>
               ))}
-            </motion.div>
+            </m.div>
           ))}
         </AnimatePresence>
 

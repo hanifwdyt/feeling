@@ -1,12 +1,19 @@
-import { useEffect, useRef, useState } from "react";
-import { CheckIn, type Draft } from "./components/CheckIn";
-import { Insights, History } from "./components/Insights";
-import { Companion, type Named } from "./components/Companion";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { History } from "./components/History";
 import { Onboarding } from "./components/Onboarding";
+import type { Draft } from "./components/CheckIn";
+import type { Named } from "./components/Companion";
+
+/* Split off everything the first paint doesn't need. The home screen is a couch
+   and a list — the chat panel, the pattern charts and the quick-log flow are all
+   behind a press, so they have no business blocking the couch from appearing. */
+const Companion = lazy(() => import("./components/Companion").then((m) => ({ default: m.Companion })));
+const Insights = lazy(() => import("./components/Insights").then((m) => ({ default: m.Insights })));
+const CheckIn = lazy(() => import("./components/CheckIn").then((m) => ({ default: m.CheckIn })));
 import { loadPersona, savePersona, type Persona } from "./lib/persona";
 import { CottonCursor } from "./components/CottonCursor";
 import { Soft } from "./components/Soft";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import {
   addEntry,
   deleteEntry,
@@ -55,6 +62,7 @@ export default function App() {
 
   if (checkin) {
     return (
+      <Suspense fallback={<div className="room" />}>
       <CheckIn
         onCancel={() => setCheckin(false)}
         onSave={(d: Draft) => {
@@ -63,6 +71,7 @@ export default function App() {
           setToast("Kecatat");
         }}
       />
+      </Suspense>
     );
   }
 
@@ -113,7 +122,7 @@ export default function App() {
               The first and largest thing on the page. A tired person should be
               able to start talking without reading anything, deciding anything,
               or filling in anything. One press. */}
-          <motion.button
+          <m.button
             className="couch"
             data-soft
             onClick={() => aiOn && setSofa({ entry: null })}
@@ -139,7 +148,7 @@ export default function App() {
                 </span>
               )}
             </div>
-          </motion.button>
+          </m.button>
 
           <Soft className="quick" sink={1} lift={0} onClick={() => setCheckin(true)}>
             atau <b>catat cepat</b> — kalau kamu udah tau rasanya apa
@@ -162,20 +171,23 @@ export default function App() {
         </main>
       ) : (
         <main className="home">
-          <Insights entries={entries} />
+          <Suspense fallback={null}>
+            <Insights entries={entries} />
+          </Suspense>
         </main>
       )}
 
       <AnimatePresence>
       {sofa && (
         <div className="overlay">
-          <motion.div
+          <m.div
             className="veil"
             onClick={() => setSofa(null)}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           />
+          <Suspense fallback={null}>
           <Companion
             entry={sofa.entry}
             persona={persona}
@@ -196,13 +208,14 @@ export default function App() {
               setToast("Kecatat. Makasih udah cerita.");
             }}
           />
+          </Suspense>
         </div>
       )}
       </AnimatePresence>
 
       <AnimatePresence>
         {toast && (
-          <motion.div
+          <m.div
             className="toast"
             initial={{ y: 16, opacity: 0, scale: 0.96 }}
             animate={{ y: 0, opacity: 1, scale: 1 }}
@@ -210,7 +223,7 @@ export default function App() {
             transition={{ type: "spring", stiffness: 380, damping: 30 }}
           >
             {toast}
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </div>
