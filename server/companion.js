@@ -17,7 +17,7 @@ import OpenAI from "openai";
 import { isCrisis, CRISIS_RESPONSE } from "./crisis.js";
 
 const PROVIDERS = [
-  { envKey: "DEEPSEEK_API_KEY", baseURL: "https://api.deepseek.com", model: "deepseek-chat" },
+  { envKey: "DEEPSEEK_API_KEY", baseURL: "https://api.deepseek.com", model: "deepseek-v4-flash" },
   {
     envKey: "OPENROUTER_API_KEY",
     baseURL: "https://openrouter.ai/api/v1",
