@@ -16,28 +16,22 @@
 import OpenAI from "openai";
 import { isCrisis, CRISIS_RESPONSE } from "./crisis.js";
 
-const PROVIDERS = [
-  { envKey: "DEEPSEEK_API_KEY", baseURL: "https://api.deepseek.com", model: "deepseek-v4-flash" },
-  {
-    envKey: "OPENROUTER_API_KEY",
-    baseURL: "https://openrouter.ai/api/v1",
-    model: "anthropic/claude-sonnet-4.5",
-  },
-];
+// AI lewat 9router (https://9router.noesis.nz, OpenAI-compatible) — satu key buat semua app.
+// Temen curhat: yang penting kehangatan + kepekaan bahasa, balasan pendek (max 400 token) dan cepat. Sonnet 5.5 tanpa thinking. Pagar krisis tetap di kode (crisis.js), bukan di model.
+const AI = {
+  envKey: "NINEROUTER_API_KEY",
+  baseURL: process.env.AI_BASE_URL || "https://9router.noesis.nz/v1",
+  model: process.env.AI_MODEL || "cc/claude-sonnet-5-5",
+  effort: process.env.AI_EFFORT || "none",
+};
 
-const activeProvider = () => PROVIDERS.find((p) => !!process.env[p.envKey]) ?? null;
-export const aiEnabled = () => activeProvider() !== null;
+export const aiEnabled = () => !!process.env[AI.envKey];
 
 let client = null;
-let clientFor = null;
 function getClient() {
-  const p = activeProvider();
-  if (!p) throw new Error("no provider");
-  if (!client || clientFor !== p.envKey) {
-    client = new OpenAI({ baseURL: p.baseURL, apiKey: process.env[p.envKey] });
-    clientFor = p.envKey;
-  }
-  return { client, model: p.model };
+  if (!aiEnabled()) throw new Error("no provider");
+  if (!client) client = new OpenAI({ baseURL: AI.baseURL, apiKey: process.env[AI.envKey] });
+  return { client, model: AI.model };
 }
 
 /** The presets offered at onboarding. `custom` lets the user write their own. */
@@ -125,6 +119,9 @@ export async function chat({ persona, entry, messages }) {
 
   const res = await llm.chat.completions.create({
     model,
+    // 9router default-nya nge-stream buat model Claude; kita butuh satu jawaban utuh.
+    stream: false,
+    reasoning_effort: AI.effort,
     temperature: 0.8, // a friend, not a form — some warmth and variety is right here
     max_tokens: 400, // hard cap on lecturing
     messages: [
